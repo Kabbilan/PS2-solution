@@ -89,9 +89,11 @@ def fetch_from_gmail():
     results = []
 
     for raw in raw_emails:
-        email = parse_gmail_message(raw)
+        parsed = parse_gmail_message(raw)
 
-        result = analyze_email(email)
+        email = EmailInput(**parsed)
+
+        result = analyze_email(email.model_dump())
 
         save_email(email)
         save_analysis(result)
