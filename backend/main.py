@@ -3,7 +3,15 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.database import initialize_database, save_analysis, save_email
+from backend.database import (
+    fetch_email,
+    fetch_emails,
+    fetch_threats,
+    initialize_database,
+    save_analysis,
+    save_email,
+    update_email_status,
+)
 from backend.schemas import AnalysisResult, EmailInput
 from detection.risk_engine import analyze_email
 
@@ -16,7 +24,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="PhishGuard API",
-    version="0.1.0",
+    version="0.2.0",
     description="Evidence-based phishing email investigation API",
     lifespan=lifespan,
 )
@@ -29,37 +37,33 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-emails: dict[str, EmailInput] = {}
-results: dict[str, dict] = {}
-
 
 @app.get("/")
 def root():
-    return {"name": "PhishGuard API", "status": "running"}
+    return {"name": "PhishGuard API", "status": "running", "database": "Supabase"}
 
 
 @app.get("/health")
 def health():
-    return {"status": "healthy"}
+    return {"status": "healthy", "database": "connected"}
 
 
 @app.get("/emails")
 def get_emails():
-    return list(emails.values())
+    return fetch_emails()
 
 
 @app.get("/emails/{email_id}")
 def get_email(email_id: str):
-    if email_id not in emails:
+    email = fetch_email(email_id)
+    if not email:
         raise HTTPException(status_code=404, detail="Email not found")
-    return emails[email_id]
+    return email
 
 
 @app.post("/analyze", response_model=AnalysisResult)
 def analyze(email: EmailInput):
     result = analyze_email(email)
-    emails[email.id] = email
-    results[email.id] = result
     save_email(email)
     save_analysis(result)
     return result
@@ -67,11 +71,7 @@ def analyze(email: EmailInput):
 
 @app.get("/threats")
 def get_threats():
-    return [
-        result
-        for result in results.values()
-        if result["verdict"] in {"SUSPICIOUS", "HIGH_RISK"}
-    ]
+    return fetch_threats()
 
 
 @app.get("/campaigns")
@@ -86,6 +86,8 @@ def get_organization():
 
 @app.post("/quarantine/{email_id}")
 def quarantine(email_id: str):
-    if email_id not in emails:
+    email = fetch_email(email_id)
+    if not email:
         raise HTTPException(status_code=404, detail="Email not found")
+    update_email_status(email_id, "QUARANTINED")
     return {"email_id": email_id, "status": "quarantined"}
