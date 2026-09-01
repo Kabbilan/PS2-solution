@@ -65,16 +65,16 @@ def analyze_email(email_json: Any) -> Dict[str, Any]:
         return output.to_dict()
 
     except Exception:
-        # Absolute safety fallback to guarantee the engine never crashes
+        # Absolute safety fallback: an analysis failure must NEVER be reported as SAFE
         fallback_id = "unknown_id"
         if isinstance(email_json, dict) and email_json.get("id") is not None:
             fallback_id = str(email_json["id"])
 
         return {
             "email_id": fallback_id,
-            "risk_score": 0,
-            "verdict": "SAFE",
-            "reasons": [],
+            "risk_score": 50,
+            "verdict": "SUSPICIOUS",
+            "reasons": ["Analysis failure: unexpected exception during inspection - manual review required"],
             "impersonation": None,
             "campaign_id": None,
         }
