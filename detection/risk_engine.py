@@ -1,4 +1,5 @@
 from backend.schemas import EmailInput
+from intelligence.impersonation import check_impersonation
 
 
 def analyze_email(email: EmailInput) -> dict:
@@ -27,6 +28,12 @@ def analyze_email(email: EmailInput) -> dict:
             score += 20
             reasons.append("Sender domain and link domain may not match")
 
+    impersonation = check_impersonation(email)
+
+    if impersonation:
+        score += 40
+        reasons.append("Impersonation detected")
+
     score = min(score, 100)
     verdict = "HIGH_RISK" if score >= 70 else "SUSPICIOUS" if score >= 40 else "SAFE"
 
@@ -35,6 +42,6 @@ def analyze_email(email: EmailInput) -> dict:
         "risk_score": score,
         "verdict": verdict,
         "reasons": reasons,
-        "impersonation": None,
+        "impersonation": impersonation,
         "campaign_id": None,
     }
