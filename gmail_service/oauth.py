@@ -66,8 +66,14 @@ def _validate_state(state: str) -> None:
         raise RuntimeError("Invalid or expired OAuth state")
 
 
+def _web_flow(state: str | None = None):
+    flow = Flow.from_client_config(_client_config(), scopes=SCOPES, state=state, redirect_uri=REDIRECT_URI)
+    flow.autogenerate_code_verifier = False
+    return flow
+
+
 def create_authorization_url():
-    flow = Flow.from_client_config(_client_config(), scopes=SCOPES, redirect_uri=REDIRECT_URI)
+    flow = _web_flow()
     state = _create_state()
     url, _ = flow.authorization_url(
         access_type="offline",
@@ -79,7 +85,7 @@ def create_authorization_url():
 
 def exchange_authorization_code(code: str, state: str):
     _validate_state(state)
-    flow = Flow.from_client_config(_client_config(), scopes=SCOPES, state=state, redirect_uri=REDIRECT_URI)
+    flow = _web_flow(state)
     flow.fetch_token(code=code)
     session_id = secrets.token_urlsafe(32)
     _user_sessions[session_id] = flow.credentials
