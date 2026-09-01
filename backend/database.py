@@ -18,7 +18,9 @@ def get_supabase() -> Client:
     key = os.getenv("SUPABASE_KEY")
 
     if not url or not key:
-        raise RuntimeError("SUPABASE_URL and SUPABASE_KEY must be set in .env")
+        raise RuntimeError(
+            "SUPABASE_URL and SUPABASE_KEY must be set in .env"
+        )
 
     _client = create_client(url, key)
     return _client
@@ -30,18 +32,31 @@ def initialize_database():
 
 def save_email(email):
     data = email.model_dump()
-    return get_supabase().table("emails").upsert(data).execute()
+
+    return (
+        get_supabase()
+        .table("emails")
+        .upsert(data)
+        .execute()
+    )
 
 
 def save_analysis(result):
-    return get_supabase().table("analysis_results").upsert({
+    data = {
         "email_id": result["email_id"],
         "risk_score": result["risk_score"],
         "verdict": result["verdict"],
         "reasons": result["reasons"],
         "impersonation": result["impersonation"],
         "campaign_id": result["campaign_id"]
-    }, on_conflict="email_id").execute()
+    }
+
+    return (
+        get_supabase()
+        .table("analysis_results")
+        .upsert(data, on_conflict="email_id")
+        .execute()
+    )
 
 
 def fetch_emails():
@@ -155,13 +170,20 @@ def fetch_vendors():
 
 
 def save_incident_report(report: dict):
-    return get_supabase().table("incident_reports").insert({
+    data = {
         "email_id": report["email_id"],
         "verdict": report["verdict"],
         "evidence": report["evidence"],
         "indicators_of_compromise": report["indicators_of_compromise"],
         "recommended_action": report["recommended_action"]
-    }).execute()
+    }
+
+    return (
+        get_supabase()
+        .table("incident_reports")
+        .insert(data)
+        .execute()
+    )
 
 
 def update_email_status(email_id: str, status: str):

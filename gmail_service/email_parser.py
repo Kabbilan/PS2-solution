@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 from email.utils import parseaddr
 from typing import Any
+
 from backend.schemas import EmailInput
 from gmail_service.attachment_parser import extract_attachments
 from gmail_service.url_extractor import extract_urls
@@ -192,6 +193,8 @@ def html_to_text(html: str) -> str:
         strip=True,
     )
 
+
 def normalize_email(raw_email: dict[str, Any]) -> EmailInput:
     """Validate and normalize parsed email data using the shared API schema."""
+
     return EmailInput(**raw_email)
