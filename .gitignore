@@ -6,3 +6,5 @@ phishguard.db
 node_modules/
 dist/
 .next/
+credentials.json
+token.json

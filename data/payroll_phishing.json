@@ -1,0 +1,31 @@
+[
+  {
+    "id": "payroll_001",
+    "thread_id": "thread_payroll_001",
+    "sender": "Payroll Department <payroll@abc-payroll.com>",
+    "sender_name": "Payroll Department",
+    "sender_email": "payroll@abc-payroll.com",
+    "recipient": "employee@abc.com",
+    "subject": "URGENT: Payroll Account Verification",
+    "body": "Your payroll account requires immediate verification. Failure to verify your account today may result in delayed salary processing. Verify your information here: https://abc-payroll-secure.com/login",
+    "urls": [
+      "https://abc-payroll-secure.com/login"
+    ],
+    "attachments": [
+      {
+        "filename": "salary_update.pdf.exe",
+        "mime_type": "application/octet-stream",
+        "size": 24576,
+        "attachment_id": "ATT-PAY-001"
+      }
+    ],
+    "headers": {
+      "From": "Payroll Department <payroll@abc-payroll.com>",
+      "To": "employee@abc.com",
+      "Subject": "URGENT: Payroll Account Verification",
+      "Authentication-Results": "spf=fail; dkim=pass; dmarc=fail"
+    },
+    "reply_to": "support@abc-payroll.com",
+    "date": "2026-09-01T09:30:00+05:30"
+  }
+]
