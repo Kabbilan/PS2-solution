@@ -14,6 +14,8 @@ from backend.database import (
 )
 from backend.schemas import AnalysisResult, EmailInput, EmployeeInput, OrganizationInput, VendorInput
 from detection.analyzer import analyze_email
+from detection.modules.urls import analyze_urls
+from detection.schemas import NormalizedEmail
 from intelligence.campaign import detect_campaign
 
 
@@ -23,7 +25,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="PhishGuard API", version="0.8.0", description="Evidence-based phishing email investigation API", lifespan=lifespan)
+app = FastAPI(title="PhishGuard API", version="0.9.0", description="Evidence-based phishing email investigation API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -86,6 +88,34 @@ def analyze_and_save(email):
         result["campaign_id"] = campaign["campaign_id"]
     save_analysis(result)
     return result
+
+
+@app.get("/scan-url")
+def scan_url(url: str = Query(..., min_length=3)):
+    try:
+        email = NormalizedEmail.from_dict({
+            "id": "url_xray",
+            "sender": "scanner@phishguard.local",
+            "recipient": "analyst@phishguard.local",
+            "subject": "URL X-Ray",
+            "body": url,
+            "urls": [url],
+            "attachments": [],
+            "headers": {},
+        })
+        result = analyze_urls(email)
+        score = int(round(result.score))
+        verdict = "HIGH_RISK" if score >= 70 else "SUSPICIOUS" if score >= 40 else "SAFE"
+        reasons = result.reasons or ["No suspicious URL indicators detected"]
+        return {
+            "url": url,
+            "risk_score": score,
+            "verdict": verdict,
+            "reasons": reasons,
+            "metadata": result.metadata,
+        }
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"URL scan failed: {exc}") from exc
 
 
 @app.get("/emails")
