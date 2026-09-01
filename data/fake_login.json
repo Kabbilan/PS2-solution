@@ -1,0 +1,10 @@
+{
+  "id": "email_001",
+  "sender": "security@paypa1-login.com",
+  "recipient": "user@company.com",
+  "subject": "Your account will be suspended!",
+  "body": "Verify your account immediately using the login link.",
+  "urls": ["http://paypa1-login.com/verify"],
+  "attachments": [],
+  "headers": {}
+}
