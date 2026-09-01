@@ -4,17 +4,29 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.database import (
+    create_employee,
+    create_organization,
+    create_vendor,
     fetch_analysis,
     fetch_email,
     fetch_emails,
+    fetch_employees,
+    fetch_organizations,
     fetch_threats,
+    fetch_vendors,
     initialize_database,
     save_analysis,
     save_email,
     save_incident_report,
     update_email_status,
 )
-from backend.schemas import AnalysisResult, EmailInput
+from backend.schemas import (
+    AnalysisResult,
+    EmailInput,
+    EmployeeInput,
+    OrganizationInput,
+    VendorInput,
+)
 from detection.risk_engine import analyze_email
 
 
@@ -26,7 +38,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="PhishGuard API",
-    version="0.3.0",
+    version="0.4.0",
     description="Evidence-based phishing email investigation API",
     lifespan=lifespan,
 )
@@ -81,9 +93,34 @@ def get_campaigns():
     return []
 
 
+@app.post("/organization")
+def add_organization(organization: OrganizationInput):
+    return create_organization(organization)
+
+
 @app.get("/organization")
 def get_organization():
-    return {"company_name": "", "official_domain": "", "employees": []}
+    return fetch_organizations()
+
+
+@app.post("/employees")
+def add_employee(employee: EmployeeInput):
+    return create_employee(employee)
+
+
+@app.get("/employees")
+def get_employees():
+    return fetch_employees()
+
+
+@app.post("/vendors")
+def add_vendor(vendor: VendorInput):
+    return create_vendor(vendor)
+
+
+@app.get("/vendors")
+def get_vendors():
+    return fetch_vendors()
 
 
 @app.get("/report/{email_id}")
