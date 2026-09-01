@@ -1,4 +1,4 @@
-const API_BASE="http://127.0.0.1:8000";
+const API_BASE="https://phishguard-api-wrjw.onrender.com";
 async function api(path,options={}){const r=await fetch(API_BASE+path,{headers:{"Content-Type":"application/json"},...options});if(!r.ok){let d={};try{d=await r.json()}catch(e){}throw new Error(d.detail||"Request failed")}return r.json()}
 function checkEmail(){const e=document.getElementById("email").value,m=document.getElementById("emailMessage");m.textContent=e?(e.includes("@")?"✓ Looks good!":"Please enter a valid email."):""}
 function checkPassword(){const p=document.getElementById("password").value,s=document.getElementById("strength");s.textContent=p.length>=8?"Strong":p.length>=5?"Medium":"Weak"}
