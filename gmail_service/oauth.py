@@ -24,16 +24,30 @@ TOKEN_FILE = os.path.join(
 )
 
 
+def _credentials_from_environment() -> Credentials | None:
+    client_id = os.getenv("GOOGLE_CLIENT_ID")
+    client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
+    refresh_token = os.getenv("GOOGLE_REFRESH_TOKEN")
+
+    if not all([client_id, client_secret, refresh_token]):
+        return None
+
+    return Credentials(
+        token=None,
+        refresh_token=refresh_token,
+        token_uri="https://oauth2.googleapis.com/token",
+        client_id=client_id,
+        client_secret=client_secret,
+        scopes=SCOPES,
+    )
+
+
 def get_gmail_credentials() -> Credentials:
-    """
-    Get valid Gmail OAuth credentials.
+    credentials = _credentials_from_environment()
 
-    On the first run, the user is taken through Google's
-    OAuth consent flow. The resulting token is stored locally
-    in token.json for future runs.
-    """
-
-    credentials = None
+    if credentials:
+        credentials.refresh(Request())
+        return credentials
 
     if os.path.exists(TOKEN_FILE):
         credentials = Credentials.from_authorized_user_file(
@@ -41,25 +55,30 @@ def get_gmail_credentials() -> Credentials:
             SCOPES,
         )
 
-    if credentials and credentials.valid:
-        return credentials
+        if credentials.valid:
+            return credentials
 
-    if credentials and credentials.expired and credentials.refresh_token:
-        credentials.refresh(Request())
-    else:
-        if not os.path.exists(CREDENTIALS_FILE):
-            raise FileNotFoundError(
-                f"OAuth credentials not found: {CREDENTIALS_FILE}"
-            )
+        if credentials.expired and credentials.refresh_token:
+            credentials.refresh(Request())
 
-        flow = InstalledAppFlow.from_client_secrets_file(
-            CREDENTIALS_FILE,
-            SCOPES,
+            with open(TOKEN_FILE, "w", encoding="utf-8") as token:
+                token.write(credentials.to_json())
+
+            return credentials
+
+    if not os.path.exists(CREDENTIALS_FILE):
+        raise FileNotFoundError(
+            "Gmail OAuth is not configured. Set GOOGLE_CLIENT_ID, "
+            "GOOGLE_CLIENT_SECRET and GOOGLE_REFRESH_TOKEN, or provide "
+            "local credentials.json for development."
         )
 
-        credentials = flow.run_local_server(
-            port=0
-        )
+    flow = InstalledAppFlow.from_client_secrets_file(
+        CREDENTIALS_FILE,
+        SCOPES,
+    )
+
+    credentials = flow.run_local_server(port=0)
 
     with open(TOKEN_FILE, "w", encoding="utf-8") as token:
         token.write(credentials.to_json())
