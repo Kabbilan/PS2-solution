@@ -27,7 +27,7 @@ from backend.schemas import (
     OrganizationInput,
     VendorInput,
 )
-from detection.risk_engine import analyze_email
+from detection.analyzer import analyze_email
 
 
 @asynccontextmanager
@@ -38,7 +38,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="PhishGuard API",
-    version="0.4.0",
+    version="0.5.0",
     description="Evidence-based phishing email investigation API",
     lifespan=lifespan,
 )
@@ -77,7 +77,7 @@ def get_email(email_id: str):
 
 @app.post("/analyze", response_model=AnalysisResult)
 def analyze(email: EmailInput):
-    result = analyze_email(email)
+    result = analyze_email(email.model_dump())
     save_email(email)
     save_analysis(result)
     return result
