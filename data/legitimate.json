@@ -1,0 +1,24 @@
+[
+  {
+    "id": "legit_001",
+    "thread_id": "thread_legit_001",
+    "sender": "Microsoft 365 <no-reply@microsoft.com>",
+    "sender_name": "Microsoft 365",
+    "sender_email": "no-reply@microsoft.com",
+    "recipient": "employee@abc.com",
+    "subject": "Your Microsoft 365 monthly summary",
+    "body": "Your monthly account summary is ready. Sign in to review your activity.",
+    "urls": [
+      "https://www.microsoft.com/account"
+    ],
+    "attachments": [],
+    "headers": {
+      "From": "Microsoft 365 <no-reply@microsoft.com>",
+      "To": "employee@abc.com",
+      "Subject": "Your Microsoft 365 monthly summary",
+      "Authentication-Results": "spf=pass; dkim=pass; dmarc=pass"
+    },
+    "reply_to": "",
+    "date": "2026-09-01T09:00:00+05:30"
+  }
+]

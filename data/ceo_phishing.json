@@ -1,0 +1,24 @@
+[
+  {
+    "id": "ceo_001",
+    "thread_id": "thread_ceo_001",
+    "sender": "Arun <arun@abc-security.com>",
+    "sender_name": "Arun",
+    "sender_email": "arun@abc-security.com",
+    "recipient": "employee@abc.com",
+    "subject": "URGENT: Confidential Payment Required",
+    "body": "I am currently unavailable. Please process this confidential payment immediately. Do not call me because I am in a meeting. Login to the secure portal below and complete the request: https://abc-security-login.com",
+    "urls": [
+      "https://abc-security-login.com"
+    ],
+    "attachments": [],
+    "headers": {
+      "From": "Arun <arun@abc-security.com>",
+      "To": "employee@abc.com",
+      "Subject": "URGENT: Confidential Payment Required",
+      "Authentication-Results": "spf=fail; dkim=fail; dmarc=fail"
+    },
+    "reply_to": "accounts@abc-security.com",
+    "date": "2026-09-01T09:15:00+05:30"
+  }
+]
