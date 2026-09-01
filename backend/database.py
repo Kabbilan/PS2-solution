@@ -77,6 +77,18 @@ def fetch_email(email_id: str):
     return response.data
 
 
+def fetch_analysis(email_id: str):
+    response = (
+        get_supabase()
+        .table("analysis_results")
+        .select("*")
+        .eq("email_id", email_id)
+        .maybe_single()
+        .execute()
+    )
+    return response.data
+
+
 def fetch_threats():
     response = (
         get_supabase()
@@ -87,6 +99,16 @@ def fetch_threats():
         .execute()
     )
     return response.data
+
+
+def save_incident_report(report: dict):
+    return get_supabase().table("incident_reports").insert({
+        "email_id": report["email_id"],
+        "verdict": report["verdict"],
+        "evidence": report["evidence"],
+        "indicators_of_compromise": report["indicators_of_compromise"],
+        "recommended_action": report["recommended_action"]
+    }).execute()
 
 
 def update_email_status(email_id: str, status: str):
