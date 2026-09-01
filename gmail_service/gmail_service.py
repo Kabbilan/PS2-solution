@@ -64,3 +64,30 @@ def get_message(
         )
         .execute()
     )
+
+
+def get_emails(
+    max_results: int = 5,
+) -> list[dict[str, Any]]:
+    """
+    Fetch recent Gmail messages with their full contents.
+    """
+
+    service = get_gmail_service()
+
+    messages = get_recent_messages(
+        service,
+        max_results=max_results,
+    )
+
+    emails = []
+
+    for message in messages:
+        email = get_message(
+            service,
+            message["id"],
+        )
+
+        emails.append(email)
+
+    return emails

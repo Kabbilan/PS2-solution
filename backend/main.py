@@ -3,6 +3,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
+from gmail_service.gmail_service import get_emails as fetch_gmail_emails
+from gmail_service.email_parser import parse_gmail_message
+
 from backend.database import (
     create_employee,
     create_organization,
@@ -79,6 +82,26 @@ def health():
 def get_emails():
     return fetch_emails()
 
+@app.get("/gmail/fetch")
+def fetch_from_gmail():
+    raw_emails = fetch_gmail_emails(5)
+
+    results = []
+
+    for raw in raw_emails:
+        email = parse_gmail_message(raw)
+
+        result = analyze_email(email)
+
+        save_email(email)
+        save_analysis(result)
+
+        results.append({
+            "email": email.model_dump(),
+            "analysis": result
+        })
+
+    return results
 
 @app.get("/emails/{email_id}")
 def get_email(email_id: str):
