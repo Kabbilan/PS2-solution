@@ -20,6 +20,7 @@ from backend.database import (
     save_incident_report,
     update_email_status,
 )
+
 from backend.schemas import (
     AnalysisResult,
     EmailInput,
@@ -27,7 +28,9 @@ from backend.schemas import (
     OrganizationInput,
     VendorInput,
 )
+
 from detection.analyzer import analyze_email
+from intelligence.campaign import detect_campaign
 
 
 @asynccontextmanager
@@ -45,7 +48,10 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:5173",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -54,12 +60,19 @@ app.add_middleware(
 
 @app.get("/")
 def root():
-    return {"name": "PhishGuard API", "status": "running", "database": "Supabase"}
+    return {
+        "name": "PhishGuard API",
+        "status": "running",
+        "database": "Supabase",
+    }
 
 
 @app.get("/health")
 def health():
-    return {"status": "healthy", "database": "connected"}
+    return {
+        "status": "healthy",
+        "database": "connected",
+    }
 
 
 @app.get("/emails")
@@ -70,16 +83,30 @@ def get_emails():
 @app.get("/emails/{email_id}")
 def get_email(email_id: str):
     email = fetch_email(email_id)
+
     if not email:
-        raise HTTPException(status_code=404, detail="Email not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Email not found",
+        )
+
     return email
 
 
 @app.post("/analyze", response_model=AnalysisResult)
 def analyze(email: EmailInput):
     result = analyze_email(email.model_dump())
+
     save_email(email)
+
+    all_emails = fetch_emails()
+    campaign = detect_campaign(all_emails)
+
+    if campaign:
+        result["campaign_id"] = campaign["campaign_id"]
+
     save_analysis(result)
+
     return result
 
 
@@ -90,6 +117,12 @@ def get_threats():
 
 @app.get("/campaigns")
 def get_campaigns():
+    all_emails = fetch_emails()
+    campaign = detect_campaign(all_emails)
+
+    if campaign:
+        return [campaign]
+
     return []
 
 
@@ -129,19 +162,34 @@ def generate_report(email_id: str):
     analysis = fetch_analysis(email_id)
 
     if not email:
-        raise HTTPException(status_code=404, detail="Email not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Email not found",
+        )
 
     if not analysis:
-        raise HTTPException(status_code=404, detail="Analysis result not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Analysis result not found",
+        )
 
     score = analysis["risk_score"]
 
     if score >= 70:
-        action = "Quarantine the email, block the sender domain, and notify the security team."
+        action = (
+            "Quarantine the email, block the sender domain, "
+            "and notify the security team."
+        )
     elif score >= 40:
-        action = "Do not open links or attachments. Review the email and sender before taking action."
+        action = (
+            "Do not open links or attachments. "
+            "Review the email and sender before taking action."
+        )
     else:
-        action = "No immediate action required. Continue normal monitoring."
+        action = (
+            "No immediate action required. "
+            "Continue normal monitoring."
+        )
 
     report = {
         "email_id": email_id,
@@ -151,19 +199,32 @@ def generate_report(email_id: str):
         "indicators_of_compromise": {
             "sender": email["sender"],
             "urls": email["urls"],
-            "attachments": email["attachments"]
+            "attachments": email["attachments"],
         },
-        "recommended_action": action
+        "recommended_action": action,
     }
 
     save_incident_report(report)
+
     return report
 
 
 @app.post("/quarantine/{email_id}")
 def quarantine(email_id: str):
     email = fetch_email(email_id)
+
     if not email:
-        raise HTTPException(status_code=404, detail="Email not found")
-    update_email_status(email_id, "QUARANTINED")
-    return {"email_id": email_id, "status": "quarantined"}
+        raise HTTPException(
+            status_code=404,
+            detail="Email not found",
+        )
+
+    update_email_status(
+        email_id,
+        "QUARANTINED",
+    )
+
+    return {
+        "email_id": email_id,
+        "status": "quarantined",
+    }
