@@ -3,35 +3,14 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from gmail_service.gmail_service import get_emails as fetch_gmail_emails
+from gmail_service.gmail_service import get_emails as fetch_gmail_emails, get_gmail_service, get_message
 from gmail_service.email_parser import parse_gmail_message
-
 from backend.database import (
-    create_employee,
-    create_organization,
-    create_vendor,
-    fetch_analysis,
-    fetch_email,
-    fetch_emails,
-    fetch_employees,
-    fetch_organizations,
-    fetch_threats,
-    fetch_vendors,
-    initialize_database,
-    save_analysis,
-    save_email,
-    save_incident_report,
-    update_email_status,
+    create_employee, create_organization, create_vendor, fetch_analysis, fetch_email,
+    fetch_emails, fetch_employees, fetch_organizations, fetch_threats, fetch_vendors,
+    initialize_database, save_analysis, save_email, save_incident_report, update_email_status,
 )
-
-from backend.schemas import (
-    AnalysisResult,
-    EmailInput,
-    EmployeeInput,
-    OrganizationInput,
-    VendorInput,
-)
-
+from backend.schemas import AnalysisResult, EmailInput, EmployeeInput, OrganizationInput, VendorInput
 from detection.analyzer import analyze_email
 from intelligence.campaign import detect_campaign
 
@@ -42,19 +21,11 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(
-    title="PhishGuard API",
-    version="0.5.0",
-    description="Evidence-based phishing email investigation API",
-    lifespan=lifespan,
-)
+app = FastAPI(title="PhishGuard API", version="0.7.0", description="Evidence-based phishing email investigation API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:5173",
-    ],
+    allow_origins=["http://localhost:3000", "http://localhost:5173", "http://localhost:5500", "http://127.0.0.1:5500"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -63,76 +34,75 @@ app.add_middleware(
 
 @app.get("/")
 def root():
-    return {
-        "name": "PhishGuard API",
-        "status": "running",
-        "database": "Supabase",
-    }
+    return {"name": "PhishGuard API", "status": "running", "database": "Supabase"}
 
 
 @app.get("/health")
 def health():
-    return {
-        "status": "healthy",
-        "database": "connected",
-    }
+    return {"status": "healthy", "database": "connected"}
+
+
+def build_email(parsed):
+    return EmailInput(
+        id=parsed["id"], sender=parsed["sender"], recipient=parsed["recipient"],
+        subject=parsed["subject"], body=parsed["body"], urls=parsed["urls"],
+        attachments=parsed["attachments"], headers=parsed["headers"],
+    )
+
+
+def analyze_and_save(email):
+    result = analyze_email(email.model_dump())
+    save_email(email)
+    campaign = detect_campaign(fetch_emails())
+    if campaign:
+        result["campaign_id"] = campaign["campaign_id"]
+    save_analysis(result)
+    return result
 
 
 @app.get("/emails")
 def get_emails():
-    return fetch_emails()
+    try:
+        return [parse_gmail_message(raw) for raw in fetch_gmail_emails(5)]
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Gmail connection failed: {exc}") from exc
+
 
 @app.get("/gmail/fetch")
 def fetch_from_gmail():
-    raw_emails = fetch_gmail_emails(5)
-
+    try:
+        raw_emails = fetch_gmail_emails(5)
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Gmail connection failed: {exc}") from exc
     results = []
-
     for raw in raw_emails:
-        parsed = parse_gmail_message(raw)
-
-        email = EmailInput(**parsed)
-
-        result = analyze_email(email.model_dump())
-
-        save_email(email)
-        save_analysis(result)
-
-        results.append({
-            "email": email.model_dump(),
-            "analysis": result
-        })
-
+        email = build_email(parse_gmail_message(raw))
+        result = analyze_and_save(email)
+        results.append({"email": email.model_dump(), "analysis": result})
     return results
+
 
 @app.get("/emails/{email_id}")
 def get_email(email_id: str):
     email = fetch_email(email_id)
-
     if not email:
-        raise HTTPException(
-            status_code=404,
-            detail="Email not found",
-        )
-
+        raise HTTPException(status_code=404, detail="Email not found")
     return email
 
 
 @app.post("/analyze", response_model=AnalysisResult)
 def analyze(email: EmailInput):
-    result = analyze_email(email.model_dump())
+    return analyze_and_save(email)
 
-    save_email(email)
 
-    all_emails = fetch_emails()
-    campaign = detect_campaign(all_emails)
-
-    if campaign:
-        result["campaign_id"] = campaign["campaign_id"]
-
-    save_analysis(result)
-
-    return result
+@app.post("/analyze-gmail/{email_id}", response_model=AnalysisResult)
+def analyze_gmail(email_id: str):
+    try:
+        service = get_gmail_service()
+        raw = get_message(service, email_id)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Unable to fetch Gmail message: {exc}") from exc
+    return analyze_and_save(build_email(parse_gmail_message(raw)))
 
 
 @app.get("/threats")
@@ -142,13 +112,8 @@ def get_threats():
 
 @app.get("/campaigns")
 def get_campaigns():
-    all_emails = fetch_emails()
-    campaign = detect_campaign(all_emails)
-
-    if campaign:
-        return [campaign]
-
-    return []
+    campaign = detect_campaign(fetch_emails())
+    return [campaign] if campaign else []
 
 
 @app.post("/organization")
@@ -185,71 +150,30 @@ def get_vendors():
 def generate_report(email_id: str):
     email = fetch_email(email_id)
     analysis = fetch_analysis(email_id)
-
     if not email:
-        raise HTTPException(
-            status_code=404,
-            detail="Email not found",
-        )
-
+        raise HTTPException(status_code=404, detail="Email not found")
     if not analysis:
-        raise HTTPException(
-            status_code=404,
-            detail="Analysis result not found",
-        )
-
+        raise HTTPException(status_code=404, detail="Analysis result not found")
     score = analysis["risk_score"]
-
     if score >= 70:
-        action = (
-            "Quarantine the email, block the sender domain, "
-            "and notify the security team."
-        )
+        action = "Quarantine the email, block the sender domain, and notify the security team."
     elif score >= 40:
-        action = (
-            "Do not open links or attachments. "
-            "Review the email and sender before taking action."
-        )
+        action = "Do not open links or attachments. Review the email and sender before taking action."
     else:
-        action = (
-            "No immediate action required. "
-            "Continue normal monitoring."
-        )
-
+        action = "No immediate action required. Continue normal monitoring."
     report = {
-        "email_id": email_id,
-        "verdict": analysis["verdict"],
-        "risk_score": score,
+        "email_id": email_id, "verdict": analysis["verdict"], "risk_score": score,
         "evidence": analysis["reasons"],
-        "indicators_of_compromise": {
-            "sender": email["sender"],
-            "urls": email["urls"],
-            "attachments": email["attachments"],
-        },
+        "indicators_of_compromise": {"sender": email["sender"], "urls": email["urls"], "attachments": email["attachments"]},
         "recommended_action": action,
     }
-
     save_incident_report(report)
-
     return report
 
 
 @app.post("/quarantine/{email_id}")
 def quarantine(email_id: str):
-    email = fetch_email(email_id)
-
-    if not email:
-        raise HTTPException(
-            status_code=404,
-            detail="Email not found",
-        )
-
-    update_email_status(
-        email_id,
-        "QUARANTINED",
-    )
-
-    return {
-        "email_id": email_id,
-        "status": "quarantined",
-    }
+    if not fetch_email(email_id):
+        raise HTTPException(status_code=404, detail="Email not found")
+    update_email_status(email_id, "QUARANTINED")
+    return {"email_id": email_id, "status": "quarantined"}
