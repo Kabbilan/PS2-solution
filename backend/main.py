@@ -9,7 +9,6 @@ from backend.database import (
     create_vendor,
     fetch_analysis,
     fetch_email,
-    fetch_emails,
     fetch_employees,
     fetch_organizations,
     fetch_threats,
@@ -20,14 +19,16 @@ from backend.database import (
     save_incident_report,
     update_email_status,
 )
-from backend.schemas import (
-    AnalysisResult,
-    EmailInput,
-    EmployeeInput,
-    OrganizationInput,
-    VendorInput,
-)
+from backend.schemas import AnalysisResult, EmailInput, EmployeeInput, OrganizationInput, VendorInput
 from detection.analyzer import analyze_email
+from gmail_service.email_parser import parse_gmail_message
+from gmail_service.gmail_service import get_gmail_service, get_message, get_recent_messages
+
+
+def fetch_gmail_emails(max_results: int = 5):
+    service = get_gmail_service()
+    messages = get_recent_messages(service, max_results=max_results)
+    return [parse_gmail_message(get_message(service, item["id"])) for item in messages]
 
 
 @asynccontextmanager
@@ -38,14 +39,19 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="PhishGuard API",
-    version="0.5.0",
+    version="0.6.0",
     description="Evidence-based phishing email investigation API",
     lifespan=lifespan,
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://localhost:5500",
+        "http://127.0.0.1:5500",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -64,7 +70,7 @@ def health():
 
 @app.get("/emails")
 def get_emails():
-    return fetch_emails()
+    return fetch_gmail_emails()
 
 
 @app.get("/emails/{email_id}")
@@ -77,6 +83,30 @@ def get_email(email_id: str):
 
 @app.post("/analyze", response_model=AnalysisResult)
 def analyze(email: EmailInput):
+    result = analyze_email(email.model_dump())
+    save_email(email)
+    save_analysis(result)
+    return result
+
+
+@app.post("/analyze-gmail/{email_id}", response_model=AnalysisResult)
+def analyze_gmail(email_id: str):
+    service = get_gmail_service()
+    try:
+        parsed = parse_gmail_message(get_message(service, email_id))
+    except Exception as exc:
+        raise HTTPException(status_code=404, detail="Gmail email not found") from exc
+
+    email = EmailInput(
+        id=parsed["id"],
+        sender=parsed["sender"],
+        recipient=parsed["recipient"],
+        subject=parsed["subject"],
+        body=parsed["body"],
+        urls=parsed["urls"],
+        attachments=parsed["attachments"],
+        headers=parsed["headers"],
+    )
     result = analyze_email(email.model_dump())
     save_email(email)
     save_analysis(result)
@@ -127,15 +157,12 @@ def get_vendors():
 def generate_report(email_id: str):
     email = fetch_email(email_id)
     analysis = fetch_analysis(email_id)
-
     if not email:
         raise HTTPException(status_code=404, detail="Email not found")
-
     if not analysis:
         raise HTTPException(status_code=404, detail="Analysis result not found")
 
     score = analysis["risk_score"]
-
     if score >= 70:
         action = "Quarantine the email, block the sender domain, and notify the security team."
     elif score >= 40:
@@ -151,11 +178,10 @@ def generate_report(email_id: str):
         "indicators_of_compromise": {
             "sender": email["sender"],
             "urls": email["urls"],
-            "attachments": email["attachments"]
+            "attachments": email["attachments"],
         },
-        "recommended_action": action
+        "recommended_action": action,
     }
-
     save_incident_report(report)
     return report
 
