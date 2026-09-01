@@ -4,3 +4,7 @@ pydantic
 python-dotenv
 python-multipart
 supabase
+google-api-python-client
+google-auth
+google-auth-oauthlib
+beautifulsoup4
