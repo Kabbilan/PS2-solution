@@ -30,17 +30,7 @@ def initialize_database():
 
 def save_email(email):
     data = email.model_dump()
-
-    return get_supabase().table("emails").upsert({
-        "id": data["id"],
-        "sender": data["sender"],
-        "recipient": data["recipient"],
-        "subject": data["subject"],
-        "body": data["body"],
-        "urls": data["urls"],
-        "attachments": data["attachments"],
-        "headers": data["headers"]
-    }).execute()
+    return get_supabase().table("emails").upsert(data).execute()
 
 
 def save_analysis(result):
@@ -55,50 +45,113 @@ def save_analysis(result):
 
 
 def fetch_emails():
-    response = (
+    return (
         get_supabase()
         .table("emails")
         .select("*")
         .order("created_at", desc=True)
         .execute()
+        .data
     )
-    return response.data
 
 
 def fetch_email(email_id: str):
-    response = (
+    return (
         get_supabase()
         .table("emails")
         .select("*")
         .eq("id", email_id)
         .maybe_single()
         .execute()
+        .data
     )
-    return response.data
 
 
 def fetch_analysis(email_id: str):
-    response = (
+    return (
         get_supabase()
         .table("analysis_results")
         .select("*")
         .eq("email_id", email_id)
         .maybe_single()
         .execute()
+        .data
     )
-    return response.data
 
 
 def fetch_threats():
-    response = (
+    return (
         get_supabase()
         .table("analysis_results")
         .select("*")
         .in_("verdict", ["SUSPICIOUS", "HIGH_RISK"])
         .order("risk_score", desc=True)
         .execute()
+        .data
     )
-    return response.data
+
+
+def create_organization(organization):
+    return (
+        get_supabase()
+        .table("organizations")
+        .insert(organization.model_dump())
+        .execute()
+        .data[0]
+    )
+
+
+def fetch_organizations():
+    return (
+        get_supabase()
+        .table("organizations")
+        .select("*, employees(*), trusted_vendors(*)")
+        .order("created_at", desc=True)
+        .execute()
+        .data
+    )
+
+
+def create_employee(employee):
+    return (
+        get_supabase()
+        .table("employees")
+        .insert(employee.model_dump())
+        .execute()
+        .data[0]
+    )
+
+
+def fetch_employees():
+    return (
+        get_supabase()
+        .table("employees")
+        .select("*")
+        .order("id")
+        .execute()
+        .data
+    )
+
+
+def create_vendor(vendor):
+    return (
+        get_supabase()
+        .table("trusted_vendors")
+        .insert(vendor.model_dump())
+        .execute()
+        .data[0]
+    )
+
+
+def fetch_vendors():
+    return (
+        get_supabase()
+        .table("trusted_vendors")
+        .select("*")
+        .order("id")
+        .execute()
+        .data
+    )
 
 
 def save_incident_report(report: dict):
