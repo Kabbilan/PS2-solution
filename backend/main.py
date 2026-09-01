@@ -1,10 +1,12 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 
 from gmail_service.gmail_service import get_emails as fetch_gmail_emails, get_gmail_service, get_message
 from gmail_service.email_parser import parse_gmail_message
+from gmail_service.oauth import FRONTEND_URL, create_authorization_url, delete_session, exchange_authorization_code
 from backend.database import (
     create_employee, create_organization, create_vendor, fetch_analysis, fetch_email,
     fetch_emails, fetch_employees, fetch_organizations, fetch_threats, fetch_vendors,
@@ -21,11 +23,11 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="PhishGuard API", version="0.7.0", description="Evidence-based phishing email investigation API", lifespan=lifespan)
+app = FastAPI(title="PhishGuard API", version="0.8.0", description="Evidence-based phishing email investigation API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173", "http://localhost:5500", "http://127.0.0.1:5500"],
+    allow_origins=["http://localhost:3000", "http://localhost:5173", "http://localhost:5500", "http://127.0.0.1:5500", "https://ps2solution.vercel.app"],
     allow_origin_regex=r"https://ps2solution(?:-[a-z0-9-]+)?\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
@@ -41,6 +43,31 @@ def root():
 @app.get("/health")
 def health():
     return {"status": "healthy", "database": "connected"}
+
+
+@app.get("/auth/google")
+def google_auth():
+    try:
+        url, _ = create_authorization_url()
+        return RedirectResponse(url)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Google OAuth configuration failed: {exc}") from exc
+
+
+@app.get("/auth/google/callback")
+def google_auth_callback(code: str = Query(...), state: str = Query(...)):
+    try:
+        session_id = exchange_authorization_code(code, state)
+        return RedirectResponse(f"{FRONTEND_URL}/#google_session={session_id}")
+    except Exception as exc:
+        return RedirectResponse(f"{FRONTEND_URL}/#google_error={str(exc)}")
+
+
+@app.post("/auth/logout")
+def google_logout(x_session_id: str | None = Header(default=None)):
+    if x_session_id:
+        delete_session(x_session_id)
+    return {"status": "logged_out"}
 
 
 def build_email(parsed):
@@ -62,17 +89,17 @@ def analyze_and_save(email):
 
 
 @app.get("/emails")
-def get_emails():
+def get_emails(x_session_id: str | None = Header(default=None)):
     try:
-        return [parse_gmail_message(raw) for raw in fetch_gmail_emails(5)]
+        return [parse_gmail_message(raw) for raw in fetch_gmail_emails(5, x_session_id)]
     except Exception as exc:
         raise HTTPException(status_code=503, detail=f"Gmail connection failed: {exc}") from exc
 
 
 @app.get("/gmail/fetch")
-def fetch_from_gmail():
+def fetch_from_gmail(x_session_id: str | None = Header(default=None)):
     try:
-        raw_emails = fetch_gmail_emails(5)
+        raw_emails = fetch_gmail_emails(5, x_session_id)
     except Exception as exc:
         raise HTTPException(status_code=503, detail=f"Gmail connection failed: {exc}") from exc
     results = []
@@ -97,9 +124,9 @@ def analyze(email: EmailInput):
 
 
 @app.post("/analyze-gmail/{email_id}", response_model=AnalysisResult)
-def analyze_gmail(email_id: str):
+def analyze_gmail(email_id: str, x_session_id: str | None = Header(default=None)):
     try:
-        service = get_gmail_service()
+        service = get_gmail_service(x_session_id)
         raw = get_message(service, email_id)
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Unable to fetch Gmail message: {exc}") from exc
