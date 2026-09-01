@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import hmac
 import os
 import secrets
 import time
@@ -16,7 +18,6 @@ TOKEN_FILE = os.path.join(BASE_DIR, "token.json")
 REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI", "https://phishguard-api-wrjw.onrender.com/auth/google/callback")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "https://ps2solution.vercel.app")
 
-_oauth_states: dict[str, float] = {}
 _user_sessions: dict[str, Credentials] = {}
 
 
@@ -36,13 +37,40 @@ def _client_config():
     }
 
 
+def _state_signing_key() -> bytes:
+    secret = os.getenv("GOOGLE_CLIENT_SECRET")
+    if not secret:
+        raise RuntimeError("GOOGLE_CLIENT_SECRET is required")
+    return secret.encode("utf-8")
+
+
+def _create_state() -> str:
+    timestamp = str(int(time.time()))
+    nonce = secrets.token_urlsafe(24)
+    payload = f"{timestamp}.{nonce}"
+    signature = hmac.new(_state_signing_key(), payload.encode("utf-8"), hashlib.sha256).hexdigest()
+    return f"{payload}.{signature}"
+
+
+def _validate_state(state: str) -> None:
+    try:
+        timestamp, nonce, signature = state.split(".", 2)
+        payload = f"{timestamp}.{nonce}"
+        expected = hmac.new(_state_signing_key(), payload.encode("utf-8"), hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(signature, expected):
+            raise ValueError
+        age = time.time() - int(timestamp)
+        if age < 0 or age > 600:
+            raise ValueError
+    except (ValueError, TypeError):
+        raise RuntimeError("Invalid or expired OAuth state")
+
+
 def create_authorization_url():
     flow = Flow.from_client_config(_client_config(), scopes=SCOPES, redirect_uri=REDIRECT_URI)
-    state = secrets.token_urlsafe(32)
-    _oauth_states[state] = time.time()
+    state = _create_state()
     url, _ = flow.authorization_url(
         access_type="offline",
-        include_granted_scopes="true",
         prompt="consent",
         state=state,
     )
@@ -50,9 +78,7 @@ def create_authorization_url():
 
 
 def exchange_authorization_code(code: str, state: str):
-    created = _oauth_states.pop(state, None)
-    if not created or time.time() - created > 600:
-        raise RuntimeError("Invalid or expired OAuth state")
+    _validate_state(state)
     flow = Flow.from_client_config(_client_config(), scopes=SCOPES, state=state, redirect_uri=REDIRECT_URI)
     flow.fetch_token(code=code)
     session_id = secrets.token_urlsafe(32)
