@@ -1,82 +1,99 @@
-import json
-import sqlite3
-from pathlib import Path
+import os
 
-DATABASE_PATH = Path("phishguard.db")
+from dotenv import load_dotenv
+from supabase import Client, create_client
+
+load_dotenv()
+
+_client: Client | None = None
 
 
-def get_connection():
-    connection = sqlite3.connect(DATABASE_PATH)
-    connection.row_factory = sqlite3.Row
-    return connection
+def get_supabase() -> Client:
+    global _client
+
+    if _client is not None:
+        return _client
+
+    url = os.getenv("SUPABASE_URL")
+    key = os.getenv("SUPABASE_KEY")
+
+    if not url or not key:
+        raise RuntimeError("SUPABASE_URL and SUPABASE_KEY must be set in .env")
+
+    _client = create_client(url, key)
+    return _client
 
 
 def initialize_database():
-    with get_connection() as connection:
-        connection.execute(
-            """
-            CREATE TABLE IF NOT EXISTS emails (
-                id TEXT PRIMARY KEY,
-                sender TEXT NOT NULL,
-                recipient TEXT NOT NULL,
-                subject TEXT NOT NULL,
-                body TEXT NOT NULL,
-                urls TEXT NOT NULL,
-                attachments TEXT NOT NULL,
-                headers TEXT NOT NULL
-            )
-            """
-        )
-        connection.execute(
-            """
-            CREATE TABLE IF NOT EXISTS analysis_results (
-                email_id TEXT PRIMARY KEY,
-                risk_score INTEGER NOT NULL,
-                verdict TEXT NOT NULL,
-                reasons TEXT NOT NULL,
-                impersonation TEXT,
-                campaign_id TEXT
-            )
-            """
-        )
+    get_supabase().table("emails").select("id").limit(1).execute()
 
 
 def save_email(email):
     data = email.model_dump()
-    with get_connection() as connection:
-        connection.execute(
-            """
-            INSERT OR REPLACE INTO emails
-            (id, sender, recipient, subject, body, urls, attachments, headers)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                data["id"],
-                data["sender"],
-                data["recipient"],
-                data["subject"],
-                data["body"],
-                json.dumps(data["urls"]),
-                json.dumps(data["attachments"]),
-                json.dumps(data["headers"]),
-            ),
-        )
+
+    return get_supabase().table("emails").upsert({
+        "id": data["id"],
+        "sender": data["sender"],
+        "recipient": data["recipient"],
+        "subject": data["subject"],
+        "body": data["body"],
+        "urls": data["urls"],
+        "attachments": data["attachments"],
+        "headers": data["headers"]
+    }).execute()
 
 
 def save_analysis(result):
-    with get_connection() as connection:
-        connection.execute(
-            """
-            INSERT OR REPLACE INTO analysis_results
-            (email_id, risk_score, verdict, reasons, impersonation, campaign_id)
-            VALUES (?, ?, ?, ?, ?, ?)
-            """,
-            (
-                result["email_id"],
-                result["risk_score"],
-                result["verdict"],
-                json.dumps(result["reasons"]),
-                json.dumps(result["impersonation"]),
-                result["campaign_id"],
-            ),
-        )
+    return get_supabase().table("analysis_results").upsert({
+        "email_id": result["email_id"],
+        "risk_score": result["risk_score"],
+        "verdict": result["verdict"],
+        "reasons": result["reasons"],
+        "impersonation": result["impersonation"],
+        "campaign_id": result["campaign_id"]
+    }, on_conflict="email_id").execute()
+
+
+def fetch_emails():
+    response = (
+        get_supabase()
+        .table("emails")
+        .select("*")
+        .order("created_at", desc=True)
+        .execute()
+    )
+    return response.data
+
+
+def fetch_email(email_id: str):
+    response = (
+        get_supabase()
+        .table("emails")
+        .select("*")
+        .eq("id", email_id)
+        .maybe_single()
+        .execute()
+    )
+    return response.data
+
+
+def fetch_threats():
+    response = (
+        get_supabase()
+        .table("analysis_results")
+        .select("*")
+        .in_("verdict", ["SUSPICIOUS", "HIGH_RISK"])
+        .order("risk_score", desc=True)
+        .execute()
+    )
+    return response.data
+
+
+def update_email_status(email_id: str, status: str):
+    return (
+        get_supabase()
+        .table("emails")
+        .update({"status": status})
+        .eq("id", email_id)
+        .execute()
+    )
