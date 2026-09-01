@@ -1,4 +1,5 @@
 from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -20,3 +21,21 @@ class AnalysisResult(BaseModel):
     reasons: list[str]
     impersonation: dict[str, Any] | None = None
     campaign_id: str | None = None
+
+
+class EmployeeInput(BaseModel):
+    organization_id: int
+    name: str
+    role: str | None = None
+    official_email: str
+
+
+class VendorInput(BaseModel):
+    organization_id: int
+    vendor_name: str
+    official_domain: str
+
+
+class OrganizationInput(BaseModel):
+    company_name: str
+    official_domain: str
