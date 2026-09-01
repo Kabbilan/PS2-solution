@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-
+from gmail_service.gmail_detection import analyze_recent_gmail_messages
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -92,6 +92,22 @@ def get_threats():
 def get_campaigns():
     return []
 
+@app.get("/gmail/analyze")
+def analyze_gmail(max_results: int = 10):
+    """
+    Fetch recent Gmail messages and analyze them
+    using the PhishGuard detection engine.
+    """
+
+    if max_results < 1 or max_results > 50:
+        raise HTTPException(
+            status_code=400,
+            detail="max_results must be between 1 and 50",
+        )
+
+    return analyze_recent_gmail_messages(
+        max_results=max_results,
+    )
 
 @app.post("/organization")
 def add_organization(organization: OrganizationInput):
