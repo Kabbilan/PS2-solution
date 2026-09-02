@@ -4,7 +4,7 @@ body{font-size:16px}
 .feature p,.message,.options,.demo h4,.demo p,.secure-note,.password-strength,.profile-copy small,.system-status b,.system-status small,.up,.section-label,.breadcrumb,.status-pill{font-size:11px!important}
 .input-box input,.scan-row input,.signin,.google,.demo button,.threat button{font-size:14px!important}
 .panel h3{font-size:19px!important}.dashboard-card h2{font-size:23px!important}.topbar h1{font-size:30px!important}.brand{font-size:18px!important}.brand small{font-size:9px!important}
-.cursor-glow{display:none!important;opacity:0!important;visibility:hidden!important;background:none!important;box-shadow:none!important;filter:none!important}
+.cursor-glow{display:block!important;visibility:visible!important;opacity:.18!important;width:220px!important;height:220px!important;border-radius:50%!important;background:radial-gradient(circle,rgba(52,132,255,.16) 0%,rgba(52,132,255,.07) 34%,rgba(18,185,214,.025) 58%,transparent 74%)!important;box-shadow:none!important;filter:blur(6px)!important;pointer-events:none!important;position:fixed!important;left:0!important;top:0!important;z-index:2!important;mix-blend-mode:normal!important}
 body,button,a,input{cursor:auto!important}button,a,.nav-button,.threat button,.signin,.google,.demo button{cursor:pointer!important}
 .dashboard-card,.panel,.login-card,.threat{opacity:1!important;filter:none!important;transform:none!important;transform-style:flat!important;will-change:auto!important;transition:transform .22s cubic-bezier(.2,.7,.2,1),box-shadow .22s ease,border-color .22s ease,background-color .22s ease!important}
 .dashboard-card:before,.panel:before,.login-card:before,.threat:before{opacity:0!important;background:none!important;filter:none!important}
@@ -18,5 +18,5 @@ button:hover:after,.nav-button:hover:after,.notification:hover:after,.signin:hov
 .panel.revealed,.dashboard-card.revealed{animation:professionalReveal .42s cubic-bezier(.22,.72,.2,1) both}
 @keyframes professionalReveal{from{opacity:.88;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @media(pointer:fine){button:hover,.nav-button:hover{filter:saturate(1.02)}}
-@media(max-width:900px){html{font-size:16px}.topbar h1{font-size:27px!important}.panel h3{font-size:18px!important}.scroll-progress{left:0!important}}
+@media(max-width:900px){html{font-size:16px}.topbar h1{font-size:27px!important}.panel h3{font-size:18px!important}.scroll-progress{left:0!important}.cursor-glow{display:none!important}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.panel.revealed,.dashboard-card.revealed{animation:none!important}.dashboard-card,.panel,.login-card,.threat,button{transition:none!important}}
