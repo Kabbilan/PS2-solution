@@ -1,0 +1,10 @@
+html{font-size:17px}
+body{font-size:16px}
+.logo p,.feature h4,.form-group label,.nav-button b,.topbar p,.panel-sub,.dashboard-card>p,.profile-copy b,.threat small{font-size:13px!important}
+.feature p,.message,.options,.demo h4,.demo p,.secure-note,.password-strength,.profile-copy small,.system-status b,.system-status small,.up,.section-label,.breadcrumb,.status-pill{font-size:11px!important}
+.input-box input,.scan-row input,.signin,.google,.demo button,.threat button{font-size:14px!important}
+.panel h3{font-size:19px!important}.dashboard-card h2{font-size:23px!important}.topbar h1{font-size:30px!important}.brand{font-size:18px!important}.brand small{font-size:9px!important}
+@media(pointer:fine){body,button,a,input{cursor:none!important}.cursor-glow{width:34px!important;height:34px!important;border:1px solid rgba(40,104,255,.32)!important;border-radius:50%!important;background:rgba(40,104,255,.06)!important;filter:none!important;box-shadow:0 0 22px rgba(40,104,255,.18)!important;pointer-events:none!important;position:fixed!important;left:0!important;top:0!important;z-index:99998!important;transition:width .16s ease,height .16s ease,background .16s ease,border-color .16s ease!important}.cursor-glow:before{content:"";position:absolute;width:6px;height:6px;border-radius:50%;background:#2868ff;left:50%;top:50%;transform:translate(-50%,-50%);box-shadow:0 0 10px rgba(40,104,255,.8)}.cursor-glow:after{content:"";position:absolute;inset:6px;border-radius:50%;border:1px dashed rgba(18,185,214,.35);animation:cursorOrbit 4s linear infinite}body:has(button:hover) .cursor-glow,body:has(a:hover) .cursor-glow{width:48px!important;height:48px!important;background:rgba(18,185,214,.10)!important;border-color:rgba(18,185,214,.55)!important}body:has(input:hover) .cursor-glow{width:42px!important;height:42px!important;border-radius:10px!important}}
+@keyframes cursorOrbit{to{transform:rotate(360deg)}}
+@media(max-width:900px){html{font-size:16px}.topbar h1{font-size:27px!important}.panel h3{font-size:18px!important}}
+@media(prefers-reduced-motion:reduce){.cursor-glow:after{animation:none}}
