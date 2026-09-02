@@ -229,9 +229,21 @@ def generate_report(email_id: str):
     else:
         action = "No immediate action required. Continue normal monitoring."
     report = {
-        "email_id": email_id, "verdict": analysis["verdict"], "risk_score": score,
+        "email_id": email_id,
+        "verdict": analysis["verdict"],
+        "risk_score": score,
         "evidence": analysis["reasons"],
-        "indicators_of_compromise": {"sender": email["sender"], "urls": email["urls"], "attachments": email["attachments"]},
+        "email_details": {
+            "sender": email.get("sender", ""),
+            "recipient": email.get("recipient", ""),
+            "subject": email.get("subject", ""),
+            "body": email.get("body", ""),
+        },
+        "indicators_of_compromise": {
+            "sender": email.get("sender", ""),
+            "urls": email.get("urls", []),
+            "attachments": email.get("attachments", []),
+        },
         "recommended_action": action,
     }
     save_incident_report(report)
