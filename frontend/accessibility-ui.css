@@ -1,10 +1,26 @@
-html{font-size:17px}
+html{font-size:17px;scroll-behavior:smooth}
 body{font-size:16px}
 .logo p,.feature h4,.form-group label,.nav-button b,.topbar p,.panel-sub,.dashboard-card>p,.profile-copy b,.threat small{font-size:13px!important}
 .feature p,.message,.options,.demo h4,.demo p,.secure-note,.password-strength,.profile-copy small,.system-status b,.system-status small,.up,.section-label,.breadcrumb,.status-pill{font-size:11px!important}
 .input-box input,.scan-row input,.signin,.google,.demo button,.threat button{font-size:14px!important}
 .panel h3{font-size:19px!important}.dashboard-card h2{font-size:23px!important}.topbar h1{font-size:30px!important}.brand{font-size:18px!important}.brand small{font-size:9px!important}
-@media(pointer:fine){body,button,a,input{cursor:none!important}.cursor-glow{width:34px!important;height:34px!important;border:1px solid rgba(40,104,255,.32)!important;border-radius:50%!important;background:rgba(40,104,255,.06)!important;filter:none!important;box-shadow:0 0 22px rgba(40,104,255,.18)!important;pointer-events:none!important;position:fixed!important;left:0!important;top:0!important;z-index:99998!important;transition:width .16s ease,height .16s ease,background .16s ease,border-color .16s ease!important}.cursor-glow:before{content:"";position:absolute;width:6px;height:6px;border-radius:50%;background:#2868ff;left:50%;top:50%;transform:translate(-50%,-50%);box-shadow:0 0 10px rgba(40,104,255,.8)}.cursor-glow:after{content:"";position:absolute;inset:6px;border-radius:50%;border:1px dashed rgba(18,185,214,.35);animation:cursorOrbit 4s linear infinite}body:has(button:hover) .cursor-glow,body:has(a:hover) .cursor-glow{width:48px!important;height:48px!important;background:rgba(18,185,214,.10)!important;border-color:rgba(18,185,214,.55)!important}body:has(input:hover) .cursor-glow{width:42px!important;height:42px!important;border-radius:10px!important}}
-@keyframes cursorOrbit{to{transform:rotate(360deg)}}
-@media(max-width:900px){html{font-size:16px}.topbar h1{font-size:27px!important}.panel h3{font-size:18px!important}}
-@media(prefers-reduced-motion:reduce){.cursor-glow:after{animation:none}}
+.cursor-glow{display:none!important}
+body,button,a,input{cursor:auto!important}
+button,a,.nav-button,.threat button,.signin,.google,.demo button{cursor:pointer!important}
+.dashboard-card,.panel,.login-card,.threat{transform:none!important;transform-style:flat!important;will-change:auto!important;transition:transform .24s cubic-bezier(.2,.7,.2,1),box-shadow .24s ease,border-color .24s ease,background-color .24s ease!important}
+.dashboard-card:hover,.panel:hover,.threat:hover{transform:translateY(-3px)!important;box-shadow:0 18px 42px rgba(15,39,83,.11)!important;border-color:#c5d8f3!important}
+.threat:hover{transform:translateY(-2px)!important;background:#fbfdff!important}
+.login-card:hover{transform:translateY(-2px)!important}
+.tilting{transform:translateY(-3px)!important}
+.depth-layer{transform:none!important}
+.main,.dashboard,.panel,.dashboard-card,.threat{perspective:none!important}
+button,.nav-button,.notification,.signin,.google,.demo button,.threat button{position:relative;overflow:hidden}
+button:after,.nav-button:after,.notification:after,.signin:after,.google:after,.demo button:after,.threat button:after{content:"";position:absolute;inset:0;background:radial-gradient(circle at center,rgba(255,255,255,.22),transparent 55%);opacity:0;transform:scale(.55);transition:opacity .22s ease,transform .22s ease;pointer-events:none}
+button:hover:after,.nav-button:hover:after,.notification:hover:after,.signin:hover:after,.google:hover:after,.demo button:hover:after,.threat button:hover:after{opacity:1;transform:scale(1)}
+.scroll-progress{position:fixed!important;left:254px!important;right:0!important;top:0!important;height:3px!important;transform-origin:left center!important;background:linear-gradient(90deg,#2868ff,#12b9d6)!important;box-shadow:0 1px 10px rgba(40,104,255,.24)!important;z-index:9999!important}
+.panel,.dashboard-card{opacity:1!important;filter:none!important}
+.panel.revealed,.dashboard-card.revealed{animation:professionalReveal .5s cubic-bezier(.2,.7,.2,1) both}
+@keyframes professionalReveal{from{opacity:.72;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@media(pointer:fine){button:hover,.nav-button:hover,.threat:hover{filter:saturate(1.03)}}
+@media(max-width:900px){html{font-size:16px}.topbar h1{font-size:27px!important}.panel h3{font-size:18px!important}.scroll-progress{left:0!important}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.panel.revealed,.dashboard-card.revealed{animation:none!important}.dashboard-card,.panel,.login-card,.threat,button{transition:none!important}}
