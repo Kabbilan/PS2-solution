@@ -121,7 +121,7 @@ def scan_url(url: str = Query(..., min_length=3)):
 @app.get("/emails")
 def get_emails(x_session_id: str | None = Header(default=None)):
     try:
-        return [parse_gmail_message(raw) for raw in fetch_gmail_emails(5, x_session_id)]
+        return [parse_gmail_message(raw) for raw in fetch_gmail_emails(20, x_session_id)]
     except Exception as exc:
         raise HTTPException(status_code=503, detail=f"Gmail connection failed: {exc}") from exc
 
@@ -129,14 +129,23 @@ def get_emails(x_session_id: str | None = Header(default=None)):
 @app.get("/gmail/fetch")
 def fetch_from_gmail(x_session_id: str | None = Header(default=None)):
     try:
-        raw_emails = fetch_gmail_emails(5, x_session_id)
+        raw_emails = fetch_gmail_emails(20, x_session_id)
     except Exception as exc:
         raise HTTPException(status_code=503, detail=f"Gmail connection failed: {exc}") from exc
+
     results = []
     for raw in raw_emails:
         email = build_email(parse_gmail_message(raw))
-        result = analyze_and_save(email)
+        result = analyze_email(email.model_dump())
+        save_email(email)
+        save_analysis(result)
         results.append({"email": email.model_dump(), "analysis": result})
+
+    campaign = detect_campaign(fetch_emails())
+    if campaign:
+        for item in results:
+            item["analysis"]["campaign_id"] = campaign["campaign_id"]
+
     return results
 
 
