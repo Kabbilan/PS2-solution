@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from datetime import date, datetime, timedelta
 
 from fastapi import FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -90,6 +91,25 @@ def analyze_and_save(email):
     return result
 
 
+def build_gmail_date_query(from_date: str | None, to_date: str | None) -> str | None:
+    if not from_date and not to_date:
+        return None
+    if not from_date or not to_date:
+        raise HTTPException(status_code=400, detail="Both from_date and to_date are required.")
+    try:
+        start = datetime.strptime(from_date, "%Y-%m-%d").date()
+        end = datetime.strptime(to_date, "%Y-%m-%d").date()
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Dates must use YYYY-MM-DD format.") from exc
+    today = date.today()
+    if start > end:
+        raise HTTPException(status_code=400, detail="from_date cannot be later than to_date.")
+    if start > today or end > today:
+        raise HTTPException(status_code=400, detail="Date range cannot include future dates.")
+    inclusive_end = end + timedelta(days=1)
+    return f"after:{start:%Y/%m/%d} before:{inclusive_end:%Y/%m/%d}"
+
+
 @app.get("/scan-url")
 def scan_url(url: str = Query(..., min_length=3)):
     try:
@@ -127,9 +147,16 @@ def get_emails(x_session_id: str | None = Header(default=None)):
 
 
 @app.get("/gmail/fetch")
-def fetch_from_gmail(x_session_id: str | None = Header(default=None)):
+def fetch_from_gmail(
+    max_results: int | None = Query(default=None, ge=1, le=500),
+    from_date: str | None = Query(default=None),
+    to_date: str | None = Query(default=None),
+    x_session_id: str | None = Header(default=None),
+):
+    query = build_gmail_date_query(from_date, to_date)
+    result_limit = max_results if max_results is not None else (100 if query else 20)
     try:
-        raw_emails = fetch_gmail_emails(20, x_session_id)
+        raw_emails = fetch_gmail_emails(result_limit, x_session_id, query=query)
     except Exception as exc:
         raise HTTPException(status_code=503, detail=f"Gmail connection failed: {exc}") from exc
 
@@ -145,6 +172,7 @@ def fetch_from_gmail(x_session_id: str | None = Header(default=None)):
     if campaign:
         for item in results:
             item["analysis"]["campaign_id"] = campaign["campaign_id"]
+            save_analysis(item["analysis"])
 
     return results
 
