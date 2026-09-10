@@ -1,0 +1,39 @@
+/* Interactive layer for PhishGuard */
+body{position:relative}
+.ambient-layer{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.ambient-layer::before,.ambient-layer::after{content:"";position:absolute;border-radius:50%;filter:blur(80px);opacity:.18;animation:ambientDrift 14s ease-in-out infinite alternate}
+.ambient-layer::before{width:420px;height:420px;background:#2f74ff;top:8%;left:18%}
+.ambient-layer::after{width:360px;height:360px;background:#19c7d8;right:8%;bottom:8%;animation-delay:-5s}
+.cursor-glow{position:fixed;width:260px;height:260px;border-radius:50%;pointer-events:none;z-index:1;transform:translate(-50%,-50%);background:radial-gradient(circle,rgba(48,116,255,.13),rgba(33,198,216,.06) 38%,transparent 70%);opacity:0;transition:opacity .25s ease;mix-blend-mode:multiply}
+body:hover .cursor-glow{opacity:1}
+.login-page,.dashboard{position:relative;z-index:2}
+.login-card,.dashboard-card,.panel,.profile,.demo,.system-status{transform-style:preserve-3d}
+.interactive-tilt{transition:transform .18s ease,box-shadow .25s ease,border-color .25s ease!important}
+.interactive-tilt:hover{box-shadow:0 28px 70px rgba(22,52,109,.18)!important}
+.reveal-item{opacity:0;transform:translateY(18px) scale(.985);transition:opacity .55s ease,transform .55s cubic-bezier(.2,.8,.2,1)}
+.reveal-item.is-visible{opacity:1;transform:none}
+.nav-button{position:relative;overflow:hidden}
+.nav-button::after{content:"";position:absolute;inset:auto 12px 4px 12px;height:2px;border-radius:99px;background:linear-gradient(90deg,transparent,#4ed8ef,transparent);transform:scaleX(0);transition:transform .25s ease}
+.nav-button:hover::after,.nav-button.active::after{transform:scaleX(1)}
+.signin,.google,.scan-row button,.demo button,.notification{position:relative;overflow:hidden}
+.ripple-wave{position:absolute;border-radius:50%;background:rgba(255,255,255,.46);transform:scale(0);animation:ripple .6s linear;pointer-events:none}
+.dashboard-card::before,.panel::before{content:"";position:absolute;inset:0;background:linear-gradient(120deg,transparent 22%,rgba(255,255,255,.7) 42%,transparent 58%);transform:translateX(-130%);transition:transform .75s ease;pointer-events:none}
+.dashboard-card:hover::before,.panel:hover::before{transform:translateX(130%)}
+.metric-icon,.panel-symbol,.avatar,.brand-mark,.mini-mark{transition:transform .25s ease,filter .25s ease}
+.dashboard-card:hover .metric-icon,.panel:hover .panel-symbol{transform:translateZ(24px) rotate(-4deg) scale(1.08)}
+.profile:hover .avatar{transform:rotate(6deg) scale(1.06)}
+.sidebar{transition:box-shadow .3s ease}
+.sidebar:hover{box-shadow:28px 0 70px rgba(12,35,76,.13)}
+.scan-row input{transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease}
+.scan-row input:focus{transform:translateY(-1px)}
+.status-pill{animation:statusBreath 2.8s ease-in-out infinite}
+.hero h2 span{background-size:200% auto;animation:gradientText 5s linear infinite}
+.feature{position:relative}
+.feature::after{content:"";position:absolute;left:0;bottom:-6px;width:0;height:1px;background:#5ee0ef;transition:width .3s ease}
+.feature:hover::after{width:100%}
+@keyframes ambientDrift{from{transform:translate3d(-20px,-10px,0) scale(.95)}to{transform:translate3d(35px,25px,0) scale(1.08)}}
+@keyframes ripple{to{transform:scale(4);opacity:0}}
+@keyframes statusBreath{0%,100%{box-shadow:0 0 0 0 rgba(23,166,115,.08)}50%{box-shadow:0 0 0 5px rgba(23,166,115,.04)}}
+@keyframes gradientText{to{background-position:200% center}}
+@media (prefers-reduced-motion:reduce){.ambient-layer::before,.ambient-layer::after,.status-pill,.hero h2 span{animation:none}.reveal-item{opacity:1;transform:none;transition:none}.interactive-tilt{transform:none!important}}
+@media(max-width:900px){.cursor-glow{display:none}.ambient-layer::before{left:-160px}.ambient-layer::after{right:-170px}}
